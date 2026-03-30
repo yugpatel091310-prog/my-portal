@@ -17,10 +17,9 @@
         .hidden { display: none !important; }
         input, select, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         
-        /* Input container for positioning the eye */
         .input-group { position: relative; display: flex; align-items: center; width: 100%; }
         
-        /* The Eye Button - styled for "Hold" */
+        /* The Eye Button - Styled for "Hold" */
         .view-btn { 
             position: absolute; 
             right: 10px; 
@@ -32,6 +31,7 @@
             padding: 5px;
             user-select: none; /* Prevents text selection while holding */
             -webkit-user-select: none;
+            -webkit-touch-callout: none; /* Prevents context menu on mobile hold */
         }
         .view-btn:active { color: var(--primary); transform: scale(1.1); }
         
@@ -132,9 +132,14 @@
     let appData = JSON.parse(localStorage.getItem('rbac_data')) || { text: "Welcome to the portal.", media: "" };
     let currentUser = null;
 
-    // --- UPDATED: HOLD TO VIEW LOGIC ---
-    function showPW(id) { document.getElementById(id).type = "text"; }
-    function hidePW(id) { document.getElementById(id).type = "password"; }
+    // --- HOLD TO VIEW LOGIC ---
+    function showPW(id) { 
+        document.getElementById(id).type = "text"; 
+    }
+    
+    function hidePW(id) { 
+        document.getElementById(id).type = "password"; 
+    }
 
     function handleLogin() {
         const u = document.getElementById('login-username').value;
@@ -245,7 +250,7 @@
                         <button class="btn-danger btn-small" onclick="deleteUser(${index})">Remove</button>
                     </div>
                     <div style="font-size: 13px;">
-                        <label style="color: #64748b;">Stored Password (Hold 👁️ to view):</label>
+                        <label style="color: #64748b;">Stored Password (Hold 👁️ to peek):</label>
                         <div class="pw-edit-row">
                             <div class="input-group" style="width:100%">
                                 <input type="password" id="${inputId}" value="${user.password}" style="margin:0; padding:5px; width:100%">
