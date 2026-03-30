@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Role Portal | RBAC System</title>
+    <style>
+        :root { 
+            --admin-color: #1e293b; 
+            --editor-color: #0284c7; 
+            --reader-color: #64748b;
+            --primary: #2563eb; 
+            --bg: #f1f5f9; 
+        }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; color: #1e293b; }
+        .card { width: 100%; max-width: 800px; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .hidden { display: none !important; }
+        input, select, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        
+        button { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+        .btn-main { background: var(--primary); color: white; width: 100%; }
+        .btn-admin { background: var(--admin-color); color: white; margin-top: 10px; }
+        .btn-danger { background: #dc2626; color: white; }
+        .btn-save { background: #059669; color: white; }
+
+        .role-badge { padding: 2px 8px; border-radius: 12px; font-size: 10px; text-transform: uppercase; color: white; margin-left: 10px; }
+        .badge-admin { background: var(--admin-color); }
+        .badge-editor { background: var(--editor-color); }
+        .badge-reader { background: var(--reader-color); }
+
+        #admin-panel { margin-top: 25px; padding-top: 20px; border-top: 2px dashed #e2e8f0; }
+        .user-list-item { background: #f8fafc; padding: 15px; margin: 8px 0; border: 1px solid #e2e8f0; border-radius: 8px; }
+        .user-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        
+        #text-output { white-space: pre-wrap; line-height: 1.6; background: #fffbeb; padding: 20px; border-radius: 8px; border-left: 4px solid #f59e0b; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div id="login-section">
+        <h2 style="text-align:center">Secure Access Portal</h2>
+        <input type="text" id="login-username" placeholder="Username">
+        <input type="password" id="login-password" placeholder="Password">
+        <button class="btn-main" onclick="handleLogin()">Login</button>
+    </div>
+
+    <div id="content-section" class="hidden">
+        <div style="display:flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3 id="welcome-msg" style="margin:0">Welcome</h3>
+                <span id="user-role-display"></span>
+            </div>
+            <button class="btn-danger" onclick="location.reload()">Logout</button>
+        </div>
+        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+
+        <div id="display-area">
+            <div id="media-output"></div>
+            <p id="text-output"></p>
+        </div>
+
+        <div id="editor-controls" class="hidden">
+            <button class="btn-admin" id="toggle-edit-btn" onclick="toggleEditMode()">Edit Content</button>
+            
+            <div id="edit-panel" class="hidden">
+                <h4>Content Editor</h4>
+                <textarea id="edit-text" rows="4"></textarea>
+                <input type="text" id="edit-media-url" placeholder="Media URL (Image/YouTube)">
+                <button class="btn-save" onclick="saveContent()">Update Page</button>
+            </div>
+        </div>
+
+        <div id="admin-only-section" class="hidden">
+            <div id="admin-panel">
+                <h4>User Management (Admin Only)</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 8px;">
+                    <input type="text" id="new-user-name" placeholder="User Name">
+                    <input type="password" id="new-user-pass" placeholder="Password">
+                    <select id="new-user-role">
+                        <option value="reader">Reader</option>
+                        <option value="editor">Editor</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                    <button class="btn-main" style="width: auto;" onclick="addNewUser()">Add</button>
+                </div>
+                <div id="user-list"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- AUTH CONFIGURATION ---
+    const INITIAL_ADMIN = { username: "Yug Patel", password: "yugpatel1309", role: "admin" };
+    
+    let users = JSON.parse(localStorage.getItem('rbac_users')) || [INITIAL_ADMIN];
+    let appData = JSON.parse(localStorage.getItem('rbac_data')) || { text: "Welcome to the portal.", media: "" };
+    let currentUser = null;
+
+    function handleLogin() {
+        const u = document.getElementById('login-username').value;
+        const p = document.getElementById('login-password').value;
+        const foundUser = users.find(user => user.username === u && user.password === p);
+
+        if (foundUser) {
+            currentUser = foundUser;
+            loadDashboard();
+        } else {
+            alert("Invalid Credentials");
+        }
+    }
+
+    function loadDashboard() {
+        document.getElementById('login-section').classList.add('hidden');
+        document.getElementById('content-section').classList.remove('hidden');
+        document.getElementById('welcome-msg').innerText = `Hello, ${currentUser.username}`;
+        
+        // Display Role Badge
+        const roleSpan = document.getElementById('user-role-display');
+        roleSpan.className = `role-badge badge-${currentUser.role}`;
+        roleSpan.innerText = currentUser.role;
+
+        // Load Content
+        document.getElementById('text-output').innerText = appData.text;
+        renderMedia(appData.media);
+
+        // --- ROLE BASED LOGIC ---
+        
+        // 1. Editors and Admins can see the Editor Controls
+        if (currentUser.role === 'admin' || currentUser.role === 'editor') {
+            document.getElementById('editor-controls').classList.remove('hidden');
+            document.getElementById('edit-text').value = appData.text;
+            document.getElementById('edit-media-url').value = appData.media;
+        }
+
+        // 2. Only Admins can see User Management
+        if (currentUser.role === 'admin') {
+            document.getElementById('admin-only-section').classList.remove('hidden');
+            renderUserList();
+        }
+    }
+
+    function renderMedia(url) {
+        const out = document.getElementById('media-output');
+        out.innerHTML = "";
+        if(!url) return;
+        if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) {
+            out.innerHTML = `<img src="${url}" style="max-width:100%; border-radius:8px; margin-bottom:15px;">`;
+        } else if (url.includes("youtube.com") || url.includes("youtu.be")) {
+            let vidId = url.split('v=')[1] || url.split('/').pop();
+            out.innerHTML = `<iframe width="100%" height="350" src="https://www.youtube.com/embed/${vidId}" frameborder="0" allowfullscreen></iframe>`;
+        }
+    }
+
+    function toggleEditMode() {
+        document.getElementById('edit-panel').classList.toggle('hidden');
+    }
+
+    function saveContent() {
+        appData.text = document.getElementById('edit-text').value;
+        appData.media = document.getElementById('edit-media-url').value;
+        localStorage.setItem('rbac_data', JSON.stringify(appData));
+        alert("Content Updated!");
+        loadDashboard(); // Refresh view
+    }
+
+    function addNewUser() {
+        const name = document.getElementById('new-user-name').value;
+        const pass = document.getElementById('new-user-pass').value;
+        const role = document.getElementById('new-user-role').value;
+        
+        if(name && pass) {
+            users.push({ username: name, password: pass, role: role });
+            localStorage.setItem('rbac_users', JSON.stringify(users));
+            renderUserList();
+            document.getElementById('new-user-name').value = "";
+            document.getElementById('new-user-pass').value = "";
+        }
+    }
+
+    function deleteUser(index) {
+        if(users[index].username === currentUser.username) return alert("You cannot delete yourself!");
+        users.splice(index, 1);
+        localStorage.setItem('rbac_users', JSON.stringify(users));
+        renderUserList();
+    }
+
+    function renderUserList() {
+        const list = document.getElementById('user-list');
+        list.innerHTML = "";
+        users.forEach((user, index) => {
+            list.innerHTML += `
+                <div class="user-list-item">
+                    <div class="user-info">
+                        <span><strong>${user.username}</strong> <small>(${user.role})</small></span>
+                        <button class="btn-danger" style="padding:4px 8px; font-size:11px" onclick="deleteUser(${index})">Remove</button>
+                    </div>
+                    <div style="font-size: 12px; color: #64748b;">
+                        Stored Password: <span style="font-family: monospace; color: #dc2626;">${user.password}</span>
+                    </div>
+                </div>
+            `;
+        });
+    }
+</script>
+
+</body>
+</html>
