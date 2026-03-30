@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Admin Portal | RBAC + Visibility</title>
+    <title>Secure Admin Portal | Hold to View</title>
     <style>
         :root { 
             --admin-color: #1e293b; 
@@ -17,8 +17,23 @@
         .hidden { display: none !important; }
         input, select, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         
-        .input-group { position: relative; display: flex; align-items: center; }
-        .view-btn { position: absolute; right: 10px; background: none; border: none; cursor: pointer; color: #64748b; font-size: 18px; padding: 0; }
+        /* Input container for positioning the eye */
+        .input-group { position: relative; display: flex; align-items: center; width: 100%; }
+        
+        /* The Eye Button - styled for "Hold" */
+        .view-btn { 
+            position: absolute; 
+            right: 10px; 
+            background: none; 
+            border: none; 
+            cursor: pointer; 
+            color: #64748b; 
+            font-size: 18px; 
+            padding: 5px;
+            user-select: none; /* Prevents text selection while holding */
+            -webkit-user-select: none;
+        }
+        .view-btn:active { color: var(--primary); transform: scale(1.1); }
         
         button { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
         .btn-main { background: var(--primary); color: white; width: 100%; }
@@ -48,7 +63,12 @@
         <input type="text" id="login-username" placeholder="Username">
         <div class="input-group">
             <input type="password" id="login-password" placeholder="Password">
-            <button class="view-btn" onclick="toggleVisibility('login-password')">👁️</button>
+            <button class="view-btn" 
+                onmousedown="showPW('login-password')" 
+                onmouseup="hidePW('login-password')"
+                onmouseleave="hidePW('login-password')"
+                ontouchstart="showPW('login-password')"
+                ontouchend="hidePW('login-password')">👁️</button>
         </div>
         <button class="btn-main" onclick="handleLogin()">Login</button>
     </div>
@@ -85,7 +105,12 @@
                     <input type="text" id="new-user-name" placeholder="New User Name">
                     <div class="input-group">
                         <input type="password" id="new-user-pass" placeholder="New Password">
-                        <button class="view-btn" onclick="toggleVisibility('new-user-pass')">👁️</button>
+                        <button class="view-btn" 
+                            onmousedown="showPW('new-user-pass')" 
+                            onmouseup="hidePW('new-user-pass')"
+                            onmouseleave="hidePW('new-user-pass')"
+                            ontouchstart="showPW('new-user-pass')"
+                            ontouchend="hidePW('new-user-pass')">👁️</button>
                     </div>
                     <select id="new-user-role">
                         <option value="reader">Reader</option>
@@ -107,15 +132,9 @@
     let appData = JSON.parse(localStorage.getItem('rbac_data')) || { text: "Welcome to the portal.", media: "" };
     let currentUser = null;
 
-    // --- NEW: TOGGLE VISIBILITY FUNCTION ---
-    function toggleVisibility(id) {
-        const input = document.getElementById(id);
-        if (input.type === "password") {
-            input.type = "text";
-        } else {
-            input.type = "password";
-        }
-    }
+    // --- UPDATED: HOLD TO VIEW LOGIC ---
+    function showPW(id) { document.getElementById(id).type = "text"; }
+    function hidePW(id) { document.getElementById(id).type = "password"; }
 
     function handleLogin() {
         const u = document.getElementById('login-username').value;
@@ -218,6 +237,7 @@
         const list = document.getElementById('user-list');
         list.innerHTML = "";
         users.forEach((user, index) => {
+            const inputId = `pw-input-${index}`;
             list.innerHTML += `
                 <div class="user-list-item">
                     <div class="user-info">
@@ -225,11 +245,16 @@
                         <button class="btn-danger btn-small" onclick="deleteUser(${index})">Remove</button>
                     </div>
                     <div style="font-size: 13px;">
-                        <label style="color: #64748b;">Stored Password:</label>
+                        <label style="color: #64748b;">Stored Password (Hold 👁️ to view):</label>
                         <div class="pw-edit-row">
                             <div class="input-group" style="width:100%">
-                                <input type="password" id="pw-input-${index}" value="${user.password}" style="margin:0; padding:5px; width:100%">
-                                <button class="view-btn" onclick="toggleVisibility('pw-input-${index}')">👁️</button>
+                                <input type="password" id="${inputId}" value="${user.password}" style="margin:0; padding:5px; width:100%">
+                                <button class="view-btn" 
+                                    onmousedown="showPW('${inputId}')" 
+                                    onmouseup="hidePW('${inputId}')"
+                                    onmouseleave="hidePW('${inputId}')"
+                                    ontouchstart="showPW('${inputId}')"
+                                    ontouchend="hidePW('${inputId}')">👁️</button>
                             </div>
                             <button class="btn-save btn-small" onclick="updatePassword(${index})">Save</button>
                         </div>
