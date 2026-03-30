@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Role Portal | RBAC System</title>
+    <title>Secure Admin Portal | RBAC + Visibility</title>
     <style>
         :root { 
             --admin-color: #1e293b; 
@@ -17,11 +17,15 @@
         .hidden { display: none !important; }
         input, select, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         
+        .input-group { position: relative; display: flex; align-items: center; }
+        .view-btn { position: absolute; right: 10px; background: none; border: none; cursor: pointer; color: #64748b; font-size: 18px; padding: 0; }
+        
         button { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
         .btn-main { background: var(--primary); color: white; width: 100%; }
         .btn-admin { background: var(--admin-color); color: white; margin-top: 10px; }
         .btn-danger { background: #dc2626; color: white; }
         .btn-save { background: #059669; color: white; }
+        .btn-small { padding: 4px 8px; font-size: 11px; margin-left: 5px; }
 
         .role-badge { padding: 2px 8px; border-radius: 12px; font-size: 10px; text-transform: uppercase; color: white; margin-left: 10px; }
         .badge-admin { background: var(--admin-color); }
@@ -33,6 +37,7 @@
         .user-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         
         #text-output { white-space: pre-wrap; line-height: 1.6; background: #fffbeb; padding: 20px; border-radius: 8px; border-left: 4px solid #f59e0b; }
+        .pw-edit-row { display: flex; gap: 5px; margin-top: 5px; width: 100%; }
     </style>
 </head>
 <body>
@@ -41,7 +46,10 @@
     <div id="login-section">
         <h2 style="text-align:center">Secure Access Portal</h2>
         <input type="text" id="login-username" placeholder="Username">
-        <input type="password" id="login-password" placeholder="Password">
+        <div class="input-group">
+            <input type="password" id="login-password" placeholder="Password">
+            <button class="view-btn" onclick="toggleVisibility('login-password')">👁️</button>
+        </div>
         <button class="btn-main" onclick="handleLogin()">Login</button>
     </div>
 
@@ -61,8 +69,7 @@
         </div>
 
         <div id="editor-controls" class="hidden">
-            <button class="btn-admin" id="toggle-edit-btn" onclick="toggleEditMode()">Edit Content</button>
-            
+            <button class="btn-admin" id="toggle-edit-btn" onclick="toggleEditMode()">Edit Page Content</button>
             <div id="edit-panel" class="hidden">
                 <h4>Content Editor</h4>
                 <textarea id="edit-text" rows="4"></textarea>
@@ -73,10 +80,13 @@
 
         <div id="admin-only-section" class="hidden">
             <div id="admin-panel">
-                <h4>User Management (Admin Only)</h4>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 8px;">
-                    <input type="text" id="new-user-name" placeholder="User Name">
-                    <input type="password" id="new-user-pass" placeholder="Password">
+                <h4>User Management</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 8px; margin-bottom: 20px;">
+                    <input type="text" id="new-user-name" placeholder="New User Name">
+                    <div class="input-group">
+                        <input type="password" id="new-user-pass" placeholder="New Password">
+                        <button class="view-btn" onclick="toggleVisibility('new-user-pass')">👁️</button>
+                    </div>
                     <select id="new-user-role">
                         <option value="reader">Reader</option>
                         <option value="editor">Editor</option>
@@ -91,12 +101,21 @@
 </div>
 
 <script>
-    // --- AUTH CONFIGURATION ---
     const INITIAL_ADMIN = { username: "Yug Patel", password: "yugpatel1309", role: "admin" };
     
     let users = JSON.parse(localStorage.getItem('rbac_users')) || [INITIAL_ADMIN];
     let appData = JSON.parse(localStorage.getItem('rbac_data')) || { text: "Welcome to the portal.", media: "" };
     let currentUser = null;
+
+    // --- NEW: TOGGLE VISIBILITY FUNCTION ---
+    function toggleVisibility(id) {
+        const input = document.getElementById(id);
+        if (input.type === "password") {
+            input.type = "text";
+        } else {
+            input.type = "password";
+        }
+    }
 
     function handleLogin() {
         const u = document.getElementById('login-username').value;
@@ -116,25 +135,19 @@
         document.getElementById('content-section').classList.remove('hidden');
         document.getElementById('welcome-msg').innerText = `Hello, ${currentUser.username}`;
         
-        // Display Role Badge
         const roleSpan = document.getElementById('user-role-display');
         roleSpan.className = `role-badge badge-${currentUser.role}`;
         roleSpan.innerText = currentUser.role;
 
-        // Load Content
         document.getElementById('text-output').innerText = appData.text;
         renderMedia(appData.media);
 
-        // --- ROLE BASED LOGIC ---
-        
-        // 1. Editors and Admins can see the Editor Controls
         if (currentUser.role === 'admin' || currentUser.role === 'editor') {
             document.getElementById('editor-controls').classList.remove('hidden');
             document.getElementById('edit-text').value = appData.text;
             document.getElementById('edit-media-url').value = appData.media;
         }
 
-        // 2. Only Admins can see User Management
         if (currentUser.role === 'admin') {
             document.getElementById('admin-only-section').classList.remove('hidden');
             renderUserList();
@@ -162,17 +175,16 @@
         appData.media = document.getElementById('edit-media-url').value;
         localStorage.setItem('rbac_data', JSON.stringify(appData));
         alert("Content Updated!");
-        loadDashboard(); // Refresh view
+        loadDashboard();
     }
 
     function addNewUser() {
         const name = document.getElementById('new-user-name').value;
         const pass = document.getElementById('new-user-pass').value;
         const role = document.getElementById('new-user-role').value;
-        
         if(name && pass) {
             users.push({ username: name, password: pass, role: role });
-            localStorage.setItem('rbac_users', JSON.stringify(users));
+            saveUsers();
             renderUserList();
             document.getElementById('new-user-name').value = "";
             document.getElementById('new-user-pass').value = "";
@@ -181,9 +193,25 @@
 
     function deleteUser(index) {
         if(users[index].username === currentUser.username) return alert("You cannot delete yourself!");
-        users.splice(index, 1);
-        localStorage.setItem('rbac_users', JSON.stringify(users));
+        if(confirm(`Are you sure you want to remove ${users[index].username}?`)) {
+            users.splice(index, 1);
+            saveUsers();
+            renderUserList();
+        }
+    }
+
+    function updatePassword(index) {
+        const newPass = document.getElementById(`pw-input-${index}`).value;
+        if(newPass.trim() === "") return alert("Password cannot be empty");
+        
+        users[index].password = newPass;
+        saveUsers();
+        alert(`Password updated for ${users[index].username}`);
         renderUserList();
+    }
+
+    function saveUsers() {
+        localStorage.setItem('rbac_users', JSON.stringify(users));
     }
 
     function renderUserList() {
@@ -194,10 +222,17 @@
                 <div class="user-list-item">
                     <div class="user-info">
                         <span><strong>${user.username}</strong> <small>(${user.role})</small></span>
-                        <button class="btn-danger" style="padding:4px 8px; font-size:11px" onclick="deleteUser(${index})">Remove</button>
+                        <button class="btn-danger btn-small" onclick="deleteUser(${index})">Remove</button>
                     </div>
-                    <div style="font-size: 12px; color: #64748b;">
-                        Stored Password: <span style="font-family: monospace; color: #dc2626;">${user.password}</span>
+                    <div style="font-size: 13px;">
+                        <label style="color: #64748b;">Stored Password:</label>
+                        <div class="pw-edit-row">
+                            <div class="input-group" style="width:100%">
+                                <input type="password" id="pw-input-${index}" value="${user.password}" style="margin:0; padding:5px; width:100%">
+                                <button class="view-btn" onclick="toggleVisibility('pw-input-${index}')">👁️</button>
+                            </div>
+                            <button class="btn-save btn-small" onclick="updatePassword(${index})">Save</button>
+                        </div>
                     </div>
                 </div>
             `;
