@@ -2,273 +2,42 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Admin Portal | Hold to View</title>
-    <style>
-        :root { 
-            --admin-color: #1e293b; 
-            --editor-color: #0284c7; 
-            --reader-color: #64748b;
-            --primary: #2563eb; 
-            --bg: #f1f5f9; 
-        }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); display: flex; justify-content: center; padding: 20px; color: #1e293b; }
-        .card { width: 100%; max-width: 800px; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
-        .hidden { display: none !important; }
-        input, select, textarea { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
-        
-        .input-group { position: relative; display: flex; align-items: center; width: 100%; }
-        
-        /* The Eye Button - Styled for "Hold" */
-        .view-btn { 
-            position: absolute; 
-            right: 10px; 
-            background: none; 
-            border: none; 
-            cursor: pointer; 
-            color: #64748b; 
-            font-size: 18px; 
-            padding: 5px;
-            user-select: none; /* Prevents text selection while holding */
-            -webkit-user-select: none;
-            -webkit-touch-callout: none; /* Prevents context menu on mobile hold */
-        }
-        .view-btn:active { color: var(--primary); transform: scale(1.1); }
-        
-        button { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
-        .btn-main { background: var(--primary); color: white; width: 100%; }
-        .btn-admin { background: var(--admin-color); color: white; margin-top: 10px; }
-        .btn-danger { background: #dc2626; color: white; }
-        .btn-save { background: #059669; color: white; }
-        .btn-small { padding: 4px 8px; font-size: 11px; margin-left: 5px; }
-
-        .role-badge { padding: 2px 8px; border-radius: 12px; font-size: 10px; text-transform: uppercase; color: white; margin-left: 10px; }
-        .badge-admin { background: var(--admin-color); }
-        .badge-editor { background: var(--editor-color); }
-        .badge-reader { background: var(--reader-color); }
-
-        #admin-panel { margin-top: 25px; padding-top: 20px; border-top: 2px dashed #e2e8f0; }
-        .user-list-item { background: #f8fafc; padding: 15px; margin: 8px 0; border: 1px solid #e2e8f0; border-radius: 8px; }
-        .user-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        
-        #text-output { white-space: pre-wrap; line-height: 1.6; background: #fffbeb; padding: 20px; border-radius: 8px; border-left: 4px solid #f59e0b; }
-        .pw-edit-row { display: flex; gap: 5px; margin-top: 5px; width: 100%; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hyper Vault Node</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="card">
-    <div id="login-section">
-        <h2 style="text-align:center">Secure Access Portal</h2>
-        <input type="text" id="login-username" placeholder="Username">
-        <div class="input-group">
-            <input type="password" id="login-password" placeholder="Password">
-            <button class="view-btn" 
-                onmousedown="showPW('login-password')" 
-                onmouseup="hidePW('login-password')"
-                onmouseleave="hidePW('login-password')"
-                ontouchstart="showPW('login-password')"
-                ontouchend="hidePW('login-password')">👁️</button>
-        </div>
-        <button class="btn-main" onclick="handleLogin()">Login</button>
-    </div>
-
-    <div id="content-section" class="hidden">
-        <div style="display:flex; justify-content: space-between; align-items: center;">
-            <div>
-                <h3 id="welcome-msg" style="margin:0">Welcome</h3>
-                <span id="user-role-display"></span>
-            </div>
-            <button class="btn-danger" onclick="location.reload()">Logout</button>
-        </div>
-        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
-
-        <div id="display-area">
-            <div id="media-output"></div>
-            <p id="text-output"></p>
-        </div>
-
-        <div id="editor-controls" class="hidden">
-            <button class="btn-admin" id="toggle-edit-btn" onclick="toggleEditMode()">Edit Page Content</button>
-            <div id="edit-panel" class="hidden">
-                <h4>Content Editor</h4>
-                <textarea id="edit-text" rows="4"></textarea>
-                <input type="text" id="edit-media-url" placeholder="Media URL (Image/YouTube)">
-                <button class="btn-save" onclick="saveContent()">Update Page</button>
-            </div>
-        </div>
-
-        <div id="admin-only-section" class="hidden">
-            <div id="admin-panel">
-                <h4>User Management</h4>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 8px; margin-bottom: 20px;">
-                    <input type="text" id="new-user-name" placeholder="New User Name">
-                    <div class="input-group">
-                        <input type="password" id="new-user-pass" placeholder="New Password">
-                        <button class="view-btn" 
-                            onmousedown="showPW('new-user-pass')" 
-                            onmouseup="hidePW('new-user-pass')"
-                            onmouseleave="hidePW('new-user-pass')"
-                            ontouchstart="showPW('new-user-pass')"
-                            ontouchend="hidePW('new-user-pass')">👁️</button>
-                    </div>
-                    <select id="new-user-role">
-                        <option value="reader">Reader</option>
-                        <option value="editor">Editor</option>
-                        <option value="admin">Admin</option>
-                    </select>
-                    <button class="btn-main" style="width: auto;" onclick="addNewUser()">Add</button>
-                </div>
-                <div id="user-list"></div>
-            </div>
+    <div id="page-login" class="page active">
+        <div class="auth-center">
+            <h1 class="neon-txt">VAULT_ACCESS</h1>
+            <input type="text" id="login-u" placeholder="ADMIN_ID">
+            <input type="password" id="login-p" placeholder="ACCESS_KEY">
+            <button class="btn-glow" onclick="handleAuth()">INITIALIZE</button>
         </div>
     </div>
-</div>
 
-<script>
-    const INITIAL_ADMIN = { username: "Yug Patel", password: "yugpatel1309", role: "admin" };
-    
-    let users = JSON.parse(localStorage.getItem('rbac_users')) || [INITIAL_ADMIN];
-    let appData = JSON.parse(localStorage.getItem('rbac_data')) || { text: "Welcome to the portal.", media: "" };
-    let currentUser = null;
-
-    // --- HOLD TO VIEW LOGIC ---
-    function showPW(id) { 
-        document.getElementById(id).type = "text"; 
-    }
-    
-    function hidePW(id) { 
-        document.getElementById(id).type = "password"; 
-    }
-
-    function handleLogin() {
-        const u = document.getElementById('login-username').value;
-        const p = document.getElementById('login-password').value;
-        const foundUser = users.find(user => user.username === u && user.password === p);
-
-        if (foundUser) {
-            currentUser = foundUser;
-            loadDashboard();
-        } else {
-            alert("Invalid Credentials");
-        }
-    }
-
-    function loadDashboard() {
-        document.getElementById('login-section').classList.add('hidden');
-        document.getElementById('content-section').classList.remove('hidden');
-        document.getElementById('welcome-msg').innerText = `Hello, ${currentUser.username}`;
+    <div id="page-files" class="page">
+        <div class="nav-bar">
+            <span class="logo" id="node-id">PROJECT_NODE</span>
+            <button class="nav-btn" style="background:red;" onclick="location.reload()">EXIT</button>
+        </div>
         
-        const roleSpan = document.getElementById('user-role-display');
-        roleSpan.className = `role-badge badge-${currentUser.role}`;
-        roleSpan.innerText = currentUser.role;
+        <div class="content-scroll">
+            <div class="admin-card">
+                <input type="file" id="up" onchange="uploadFile(this)" style="display:none">
+                <label for="up" class="btn-glow" style="display:block; text-align:center;">+ UPLOAD TO THIS NODE</label>
+                <p id="status-text" style="font-size:10px; text-align:center; margin-top:8px; color:gray;">READY</p>
+            </div>
 
-        document.getElementById('text-output').innerText = appData.text;
-        renderMedia(appData.media);
+            <h3 class="logo">📁 FILES_IN_THIS_NODE</h3>
+            <div id="file-list"></div>
+        </div>
+    </div>
 
-        if (currentUser.role === 'admin' || currentUser.role === 'editor') {
-            document.getElementById('editor-controls').classList.remove('hidden');
-            document.getElementById('edit-text').value = appData.text;
-            document.getElementById('edit-media-url').value = appData.media;
-        }
-
-        if (currentUser.role === 'admin') {
-            document.getElementById('admin-only-section').classList.remove('hidden');
-            renderUserList();
-        }
-    }
-
-    function renderMedia(url) {
-        const out = document.getElementById('media-output');
-        out.innerHTML = "";
-        if(!url) return;
-        if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) {
-            out.innerHTML = `<img src="${url}" style="max-width:100%; border-radius:8px; margin-bottom:15px;">`;
-        } else if (url.includes("youtube.com") || url.includes("youtu.be")) {
-            let vidId = url.split('v=')[1] || url.split('/').pop();
-            out.innerHTML = `<iframe width="100%" height="350" src="https://www.youtube.com/embed/${vidId}" frameborder="0" allowfullscreen></iframe>`;
-        }
-    }
-
-    function toggleEditMode() {
-        document.getElementById('edit-panel').classList.toggle('hidden');
-    }
-
-    function saveContent() {
-        appData.text = document.getElementById('edit-text').value;
-        appData.media = document.getElementById('edit-media-url').value;
-        localStorage.setItem('rbac_data', JSON.stringify(appData));
-        alert("Content Updated!");
-        loadDashboard();
-    }
-
-    function addNewUser() {
-        const name = document.getElementById('new-user-name').value;
-        const pass = document.getElementById('new-user-pass').value;
-        const role = document.getElementById('new-user-role').value;
-        if(name && pass) {
-            users.push({ username: name, password: pass, role: role });
-            saveUsers();
-            renderUserList();
-            document.getElementById('new-user-name').value = "";
-            document.getElementById('new-user-pass').value = "";
-        }
-    }
-
-    function deleteUser(index) {
-        if(users[index].username === currentUser.username) return alert("You cannot delete yourself!");
-        if(confirm(`Are you sure you want to remove ${users[index].username}?`)) {
-            users.splice(index, 1);
-            saveUsers();
-            renderUserList();
-        }
-    }
-
-    function updatePassword(index) {
-        const newPass = document.getElementById(`pw-input-${index}`).value;
-        if(newPass.trim() === "") return alert("Password cannot be empty");
-        
-        users[index].password = newPass;
-        saveUsers();
-        alert(`Password updated for ${users[index].username}`);
-        renderUserList();
-    }
-
-    function saveUsers() {
-        localStorage.setItem('rbac_users', JSON.stringify(users));
-    }
-
-    function renderUserList() {
-        const list = document.getElementById('user-list');
-        list.innerHTML = "";
-        users.forEach((user, index) => {
-            const inputId = `pw-input-${index}`;
-            list.innerHTML += `
-                <div class="user-list-item">
-                    <div class="user-info">
-                        <span><strong>${user.username}</strong> <small>(${user.role})</small></span>
-                        <button class="btn-danger btn-small" onclick="deleteUser(${index})">Remove</button>
-                    </div>
-                    <div style="font-size: 13px;">
-                        <label style="color: #64748b;">Stored Password (Hold 👁️ to peek):</label>
-                        <div class="pw-edit-row">
-                            <div class="input-group" style="width:100%">
-                                <input type="password" id="${inputId}" value="${user.password}" style="margin:0; padding:5px; width:100%">
-                                <button class="view-btn" 
-                                    onmousedown="showPW('${inputId}')" 
-                                    onmouseup="hidePW('${inputId}')"
-                                    onmouseleave="hidePW('${inputId}')"
-                                    ontouchstart="showPW('${inputId}')"
-                                    ontouchend="hidePW('${inputId}')">👁️</button>
-                            </div>
-                            <button class="btn-save btn-small" onclick="updatePassword(${index})">Save</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-    }
-</script>
-
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-storage-compat.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
